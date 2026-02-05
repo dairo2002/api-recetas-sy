@@ -209,17 +209,19 @@ final class RecipesController extends AbstractController
                 $this->em->flush();
 
                 return $this->json([
-                    'status' => 'success', 'message' => 'Se creo la receta exitosamente'
+                    'status' => 'success',
+                    'message' => 'Se creo la receta exitosamente'
                 ], Response::HTTP_OK);
-
             } catch (FileException $th) {
                 return $this->json([
-                    'status' => 'error', 'message' => 'La imagen no existe'
+                    'status' => 'error',
+                    'message' => 'La imagen no existe'
                 ], Response::HTTP_NOT_FOUND);
             }
         } else {
             return $this->json([
-                'status' => 'error', 'message' => 'La imagen no existe'
+                'status' => 'error',
+                'message' => 'La imagen no existe'
             ], Response::HTTP_NOT_FOUND);
         }
     }
@@ -251,8 +253,71 @@ final class RecipesController extends AbstractController
         $this->em->flush();
 
         return $this->json([
-            'status' => 'success', 'message' => 'La receta ha sido actualizada correctamente'
+            'status' => 'success',
+            'message' => 'La receta ha sido actualizada correctamente'
         ], Response::HTTP_OK);
-    
+    }
+
+    #[Route('/api/v1/recipes/update-photos', methods: ['POST'])]
+    public function updatePhotos(Request $request): JsonResponse
+    {
+        $recipeId = $this->em->getRepository(Recipes::class)->find($request->request->get('id'));
+        if (!$recipeId) {
+            return $this->json([
+                'status' => 'error',
+                'message' => 'La URL no esta disponible'
+            ], Response::HTTP_NOT_FOUND);
+        }
+
+        $img = $request->files->get('imagen');
+        if ($img) {
+            $newFileName = time() . '.' . $img->guessExtension();
+            try {
+
+                $img->move($this->getParameter('recetas_directory'), $newFileName);
+                unlink(getcwd() . '/uploads/recipes/' . $recipeId->getImagen);
+                $recipeId->setImagen($newFileName);
+                $this->em->flush();
+
+                return $this->json([
+                    'status' => 'error',
+                    'message' => 'Se actualizo correctamente la imagen'
+                ], Response::HTTP_OK);
+            } catch (FileException $e) {
+
+                return $this->json([
+                    'status' => 'error',
+                    'message' => 'La URL no esta disponible'
+                ], Response::HTTP_NOT_FOUND);
+            }
+        } else {
+
+            return $this->json([
+                'status' => 'error',
+                'message' => 'La URL no esta disponible'
+            ], Response::HTTP_NOT_FOUND);
+        }
+    }
+
+    #[Route('/api/v1/recipes/delete/{id}', methods: ['DELETE'])]
+    public function deleteRecipes(Request $request, int $id): JsonResponse
+    {
+        $recipeId = $this->em->getRepository(Recipes::class)->find($request->request->get('id'));
+
+        if (!$recipeId) {
+            return $this->json([
+                'status' => 'error',
+                'message' => 'La URL no esta disponible'
+            ], Response::HTTP_NOT_FOUND);
+        }
+
+        unlink(getcwd() . '/uploads/recipes/' . $recipeId->getImagen);
+        $this->em->remove($recipeId);
+        $this->em->flush();
+
+        return $this->json([
+            'status' => 'succes',
+            'message' => 'Se elimino correctamente la imagen'
+        ], Response::HTTP_OK);
     }
 }
