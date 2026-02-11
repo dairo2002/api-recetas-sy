@@ -72,7 +72,7 @@ final class CategoriesController extends AbstractController
         $this->em->flush();
 
         return $this->json([
-            "status" => "Success",
+            "status" => "success",
             "message" => "Se registro una categoría correctamente"
         ], Response::HTTP_CREATED);
     }
@@ -98,7 +98,7 @@ final class CategoriesController extends AbstractController
         $this->em->flush();
 
         return $this->json([
-            "status" => "Success",
+            "status" => "success",
             "message" => "Se modifico la categoría correctamente"
         ], Response::HTTP_CREATED);
     }
@@ -114,7 +114,7 @@ final class CategoriesController extends AbstractController
 
         if (!$categoryId) {
             return $this->json([
-                "status" => "Error",
+                "status" => "error",
                 "message" => "No se encontro ninguna categoría"
             ], Response::HTTP_NOT_FOUND);
         }
@@ -122,7 +122,7 @@ final class CategoriesController extends AbstractController
         $exist = $this->em->getRepository(Recipes::class)->findBy(array('category' => $id));
         if ($exist) {
             return $this->json([
-                "status" => "Error",
+                "status" => "error",
                 "message" => "No se puede eliminar el registro porque la receta se encuntra en uso"
             ], Response::HTTP_BAD_REQUEST);
         } else {
@@ -130,7 +130,7 @@ final class CategoriesController extends AbstractController
             $this->em->flush();
 
             return $this->json([
-                "status" => "Success",
+                "status" => "success",
                 "message" => "Se elimino el registro"
             ], Response::HTTP_OK);
         }
