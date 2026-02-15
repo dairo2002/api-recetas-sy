@@ -5,6 +5,7 @@ namespace App\Controller;
 use App\Dto\RecipesDto;
 use App\Entity\Category;
 use App\Entity\Recipes;
+use App\Entity\User;
 use DateTime;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -13,11 +14,12 @@ use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\String\Slugger\SluggerInterface;
-
-//Paginator
-use Knp\Component\Pager\PaginatorInterface;
 use Symfony\Component\HttpFoundation\File\Exception\FileException;
 use Symfony\Component\HttpKernel\Attribute\MapRequestPayload;
+use Knp\Component\Pager\PaginatorInterface;
+use Firebase\JWT\JWT;
+use Firebase\JWT\Key;
+
 
 final class RecipesController extends AbstractController
 {
@@ -47,14 +49,17 @@ final class RecipesController extends AbstractController
          */
         foreach ($pagination as $c) {
             $res[] = [
-                'id' => $c->getId(),
-                'name' => $c->getName(),
-                'slug' => $c->getSlug(),
-                'time' => $c->getTime(),
-                'detail' => $c->getDetail(),
-                'date' => $c->getDate()->format('d/m/Y'),
-                'image' => $request->getUriForPath("/uploads/recipes/{$c->getImage()}"),
-                'category_id' => $c->getCategory()->getId()
+                'id'          => $c->getId(),
+                'name'        => $c->getName(),
+                'slug'        => $c->getSlug(),
+                'time'        => $c->getTime(),
+                'detail'      => $c->getDetail(),
+                'date'        => $c->getDate()->format('d/m/Y'),
+                'image'       => $request->getUriForPath("/uploads/recipes/{$c->getImage()}"),
+                'category_id' => $c->getCategory()->getId(),
+                'category'    => $c->getCategory()->getName(),
+                'user_id'     => $c->getUser()->getId(),
+                'user'        => $c->getUser()->getName()
             ];
         }
 
@@ -77,14 +82,17 @@ final class RecipesController extends AbstractController
          */
         foreach ($data as $c) {
             $res[] = [
-                'id' => $c->getId(),
-                'name' => $c->getName(),
-                'slug' => $c->getSlug(),
-                'time' => $c->getTime(),
-                'detail' => $c->getDetail(),
-                'date' => $c->getDate()->format('d/m/Y'),
-                'image' => $request->getUriForPath("/uploads/recipes/{$c->getImage()}"),
-                'category_id' => $c->getCategory()->getId()
+                'id'          => $c->getId(),
+                'name'        => $c->getName(),
+                'slug'        => $c->getSlug(),
+                'time'        => $c->getTime(),
+                'detail'      => $c->getDetail(),
+                'date'        => $c->getDate()->format('d/m/Y'),
+                'image'       => $request->getUriForPath("/uploads/recipes/{$c->getImage()}"),
+                'category_id' => $c->getCategory()->getId(),
+                'category'    => $c->getCategory()->getName(),
+                'user_id'     => $c->getUser()->getId(),
+                'user'        => $c->getUser()->getName()
             ];
         }
 
@@ -122,14 +130,17 @@ final class RecipesController extends AbstractController
         } else {
             foreach ($data as $c) {
                 $res[] = [
-                    'id' => $c->getId(),
-                    'name' => $c->getName(),
-                    'slug' => $c->getSlug(),
-                    'time' => $c->getTime(),
-                    'detail' => $c->getDetail(),
-                    'date' => $c->getDate()->format('d/m/Y'),
-                    'image' => $request->getUriForPath("/uploads/recipes/{$c->getImage()}"),
-                    'category_id' => $c->getCategory()->getId()
+                    'id'          => $c->getId(),
+                    'name'        => $c->getName(),
+                    'slug'        => $c->getSlug(),
+                    'time'        => $c->getTime(),
+                    'detail'      => $c->getDetail(),
+                    'date'        => $c->getDate()->format('d/m/Y'),
+                    'image'       => $request->getUriForPath("/uploads/recipes/{$c->getImage()}"),
+                    'category_id' => $c->getCategory()->getId(),
+                    'category'    => $c->getCategory()->getName(),
+                    'user_id'     => $c->getUser()->getId(),
+                    'user'        => $c->getUser()->getName()
                 ];
             }
         }
@@ -165,7 +176,10 @@ final class RecipesController extends AbstractController
             'detail'      => $recipe[0]->getDetail(),
             'date'        => $recipe[0]->getDate()->format('d/m/Y'),
             'image'       => $request->getUriForPath("/uploads/recipes/{$recipe[0]->getImage()}"),
-            'category_id' => $recipe[0]->getCategory()->getId()
+            'category_id' => $recipe[0]->getCategory()->getId(),
+            'category'    => $recipe[0]->getCategory()->getName(),
+            'user_id'     => $recipe[0]->getUser()->getId(),
+            'user'        => $recipe[0]->getUser()->getName()
         ], Response::HTTP_OK);
     }
 
@@ -194,8 +208,14 @@ final class RecipesController extends AbstractController
 
         $img = $request->files->get('imagen');
         if ($img) {
+
             $newFileName = time() . '.' . $img->guessExtension();
+
             try {
+                
+                $decode = JWT::decode($request->headers->get('X-AUTH-TOKEN'), new Key($_ENV['JWT_SECRET'], 'HS512'));
+                $user = $this->em->getRepository(User::class)->findOneBy(['id' => $decode->aud]);
+
                 $img->move($this->getParameter('recetas_directory'), $newFileName);
                 $save = new Recipes();
                 $save->setName($dto->name);
@@ -205,6 +225,7 @@ final class RecipesController extends AbstractController
                 $save->setCategory($category_id); // Si existe la categoria se crea
                 $save->setDate(new \DateTime());
                 $save->setImage($newFileName);
+                $save->setUser($user);
                 $this->em->persist($save);
                 $this->em->flush();
 

@@ -16,6 +16,8 @@ security:
         main:
             lazy: true
             provider: app_user_provider
+            custom_authenticators: 
+                - App\Security\CustomAuthenticator            
 
             # activate different ways to authenticate
             # https://symfony.com/doc/current/security.html#the-firewall
@@ -27,7 +29,8 @@ security:
     # Note: Only the *first* access control that matches will be used
     access_control:
         # - { path: ^/admin, roles: ROLE_ADMIN }
-        # - { path: ^/profile, roles: ROLE_USER }
+        # Seguridad a las URL que empiezan por API
+        - { path: ^/api, roles: IS_AUTHENTICATED_FULLY } 
 
 when@test:
     security:
